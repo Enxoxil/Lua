@@ -1,0 +1,12 @@
+{
+	"Lua.diagnostics.globals": [
+		"vehicle",
+		"ahrs",
+		"barometer",
+		"rangefinder",
+		"update",
+		"gcs",
+		"lat",
+		"gps_alt"
+	]
+}

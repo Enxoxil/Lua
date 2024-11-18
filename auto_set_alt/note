@@ -1,0 +1,21 @@
+singleton AP_Baro method get_altitude float
+singleton AP_Baro method healthy boolean uint8_t'skip_check
+
+singleton AP_AHRS method get_hagl boolean float'Null
+// Получение высоты над землей 
+
+
+
+local gps_data = gps:location()  -- Получаем данные о местоположении
+local current_altitude = gps_data.alt
+
+
+local velocity = ahrs:get_velocity_NED()
+local vertical_speed = velocity.z -- Скорость по вертикали, отрицательное значение это набор высоты
+
+
+local target_velocity = Vector3f(0, 0, -2)  -- Установить скорость по z: -2 м/с (набор высоты)
+vehicle:set_target_velocity_NED(target_velocity)
+
+Так устанавливается вертикальная скорость
+
