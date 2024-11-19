@@ -10,27 +10,31 @@
 -- @end
 -- 
 
-local vtx_freq_for_first_value_rc = nil;
-local vtx_freq_for_second_value_rc = nil;
-local vtx_freq_for_third_value_rc = nil;
-local vtx_freq_for_fourth_value_rc = nil;
-local vtx_freq_for_fifth_value_rc = nil;
+
+local first_freq = nil;
+local second_freq = nil;
+local third_freq = nil;
+local fourth_freq = nil;
+local fifth_freq = nil;
+
+local frequencies = {first_freq, second_freq, third_freq, fourth_freq, fifth_freq};
 
 local aux_for_change_VTX_channel = nil;
 local RC_state = nil;
-local button_counter = 0;
+local current_channel_index = 1;
+local last_button_state = 0;
 
 local function initialize_parameters()
 	-- get parameters
-	vtx_freq_for_first_value_rc = param:get('SCR_USER1');
-	vtx_freq_for_second_value_rc = param:get('SCR_USER2');
-	vtx_freq_for_third_value_rc = param:get('SCR_USER3');
-	vtx_freq_for_fourth_value_rc = param:get('SCR_USER4');
-	vtx_freq_for_fifth_value_rc = param:get('SCR_USER5');
+	frequencies[first_freq] = param:get('SCR_USER1');
+	frequencies[second_freq] = param:get('SCR_USER1');
+	frequencies[third_freq] = param:get('SCR_USER1');
+	frequencies[fourth_freq] = param:get('SCR_USER1');
+	frequencies[fifth_freq] = param:get('SCR_USER1');
 	aux_for_change_VTX_channel = param:get('SCR_USER6');
 
 	-- Check if parameters are loaded
-	if not vtx_freq_for_first_value_rc or not vtx_freq_for_second_value_rc or not vtx_freq_for_third_value_rc or not vtx_freq_for_fourth_value_rc or not vtx_freq_for_fifth_value_rc or not aux_for_change_VTX_channel then
+	if not frequencies[first_freq] or not frequencies[second_freq] or not frequencies[third_freq] or not frequencies[fourth_freq] or not frequencies[fifth_freq] or not aux_for_change_VTX_channel then
 		gcs:send_text(0, "Error: One or more parameters not loaded. Retrying...");
 		return initialize_parameters, 1000;
 	else
@@ -39,8 +43,8 @@ local function initialize_parameters()
 	end
 end;
 
-local function get_vtx_channel(freq, map)
-	return map[freq];
+local function get_vtx_channel(table, index)
+	return table[index];
 end;
 
 local function set_vtx_channel(freq)
@@ -52,28 +56,21 @@ local function set_vtx_channel(freq)
 end;
 
 function update()
-	local state_switch_pwm = rc:get_pwm(aux_for_change_VTX_channel);
+	local button_state = rc:get_pwm(aux_for_change_VTX_channel);
 	local current_freq = nil;
 
-	if (RC_state ~= state_switch_pwm) then
-		if state_switch_pwm > 800 and state_switch_pwm < 1301 then
-			current_freq = vtx_freq_for_first_value_rc;
-			set_vtx_channel(current_freq);
-
-		elseif state_switch_pwm > 1300 and state_switch_pwm < 1801 then
-			current_freq = vtx_freq_for_second_value_rc;
-			set_vtx_channel(current_freq);
-
-		elseif state_switch_pwm > 1800 and state_switch_pwm < 2200 then
-			current_freq = vtx_freq_for_third_value_rc;
-			set_vtx_channel(current_freq);
-	
-		else
-			gcs:send_text(0, "PWM out of expected range");
-		end;
+	if button_state and button_state > 1500 and last_button_state <= 1500 then
+		if (current_channel_index == 5) then 
+			current_channel_index = 1
+			set_vtx_channel(get_vtx_channel(frequencies, current_channel_index))
+		else 
+			current_channel_index = current_channel_index + 1;
+			set_vtx_channel(get_vtx_channel(frequencies, current_channel_index))
+		end
 	end
-	RC_state = state_switch_pwm;
-	
+
+		last_button_state = button_state or 0;
+
 	return update, 100;
 end;
 
