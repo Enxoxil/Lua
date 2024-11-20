@@ -1,7 +1,7 @@
 -- 
 -- @component change_vtx_channel_switch_3pos
 -- @description Change VTX channel for MILELRS with switch 3pos
--- @Author: @moishe_rubinstein.01 (signal)
+-- @Author: @alex_jackson.01  (signal)
 -- For To use with MILELRS a couple of steps are required.
 -- 1) Specify the Channel (aux) that will switch vtx, in parameter SCR_USER6
 -- 2) Specify the frequencies of the desired vtx channels in the same order as
