@@ -8,5 +8,6 @@
 		"gcs",
 		"lat",
 		"gps_alt"
-	]
+	],
+	"lua.targetVersion": "5.3"
 }
