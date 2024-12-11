@@ -62,7 +62,7 @@ local function loop()
 		local lower_b = boundaries[i].lower
 		local upper_b = boundaries[i].upper
 
-		if RC_channel_value >= lower_b and RC_channel_value <= upper_b then
+		if RC_channel_value > lower_b and RC_channel_value <= upper_b then
 			if freq ~= prev_freq then
 				gcs:send_text(6, "Current VTX freq: " .. freq)
 				prev_freq = freq
