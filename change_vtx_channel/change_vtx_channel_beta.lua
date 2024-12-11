@@ -16,26 +16,28 @@
 -- consts START --
 local TABLE_KEY = 51
 local TABLE_PREFIX = "VTX_"
-local LOOP_INTERVAL = 500
+local LOOP_INTERVAL = 300
 local VTX_FREQ = "VTX_FREQ"
-local RC_RANGE = 1000
+local RC_RANGE = 1010
 -- consts END --
 
 -- var START --
 local RC_channel = nil
-local frequencies = {}
 local RC_channel_value = 0
-local current_freq = 0
-local pref_freq = 0
-local is_add_param_table = false
-local is_init_vtx_freq = false
+local prev_freq = 0
 local range_step = 0
 local enable = 0
-local is_enable = false
-local is_init_RC_channel = false
-local is_init = false
 local lower_bound = 0
 local upper_bound = 0
+local is_init_vtx_freq = false
+local is_add_param_table = false
+local is_enable = false
+local is_init_RC_channel = false
+local is_init_boundaries = false
+local is_init = false
+
+local frequencies = {}
+local boundaries = {}
 local PARAMS = {
 	CHANGE_ENABLE = "CHANGE_EN",
 	CHANNEL_RC = "CHANNEL_RC",
@@ -56,22 +58,22 @@ local PARAMS = {
 local function loop()
 	RC_channel_value = rc:get_pwm(RC_channel)
 
-	for _, freq in ipairs(frequencies) do
-		if RC_channel_value > lower_bound and RC_channel_value <= upper_bound then
-			param:set(VTX_FREQ, freq)
-			current_freq = freq
-			break
-		end
-	end
+	for i, freq in ipairs(frequencies) do
+		local lower_b = boundaries[i].lower
+		local upper_b = boundaries[i].upper
 
-	if current_freq ~= pref_freq then
-		gcs:send_text(6, "Current VTX freq: " .. current_freq)
-		pref_freq = current_freq
+		if RC_channel_value >= lower_b and RC_channel_value <= upper_b then
+			if freq ~= prev_freq then
+				gcs:send_text(6, "Current VTX freq: " .. freq)
+				prev_freq = freq
+				param:set(VTX_FREQ, freq)
+				break
+			end
+		end
 	end
 
 	return loop, LOOP_INTERVAL
 end
-
 -- main END --
 
 -- init START --
@@ -101,45 +103,47 @@ local function init()
 
 	-- check enable vtx channel change mode
 	if not is_enable then
-		gcs:send_text(6, "Check enable vtx channel change mode")
 		local enable = param:get(TABLE_PREFIX .. PARAMS.CHANGE_ENABLE) or 0
-		gcs:send_text(6, "VTX control enable: " .. enable)
+		gcs:send_text(6, "1: VTX control enable!")
 
 		if enable == 0 and count < 10 then
 			count = count + 1
-			return init, 1000
+			return init, 100
 		elseif enable == 0 and count > 10 then
-			gcs:send_text(6, "VTX control disabled")
+			gcs:send_text(6, "1: VTX control disabled!")
+			return 0
 		end
 
 		is_enable = true
-		return init, 1000
+		return init, 100
 	end
 
 	-- set init freq
 	if (is_add_param_table and is_enable) and not is_init_vtx_freq then
 		local init_freq = param:get(TABLE_PREFIX .. PARAMS.FREQS[1]) or 1000
-		gcs:send_text(6, "Set init freq" .. init_freq)
+		gcs:send_text(6, "2: Set init freq ... " .. init_freq)
 		param:set(VTX_FREQ, init_freq)
 
 		is_init_vtx_freq = true
-		return init, 1000
+		gcs:send_text(6, "2: Done! " .. init_freq)
+		return init, 100
 	end
 
 	-- set RC channel
 	if not is_init_RC_channel then
-		gcs:send_text(6, "Set RC channel")
+		gcs:send_text(6, "3: Set RC channel ...")
 		RC_channel = param:get(TABLE_PREFIX .. PARAMS.CHANNEL_RC) or nil
 		if RC_channel == nil or RC_channel < 5 then
-			gcs:send_text(6, "VTX channel not found")
-			return init, 1000
+			gcs:send_text(6, "3: VTX channel not found!")
+			return init, 100
 		end
+		gcs:send_text(6, "3: Done!")
 		is_init_RC_channel = true
-		return init, 1000
+		return init, 100
 	end
 
 	if not is_init then
-		gcs:send_text(6, "Set RC range")
+		gcs:send_text(6, "4: Set RC range ...")
 		for _, paramName in ipairs(PARAMS.FREQS) do
 			local freq = param:get(TABLE_PREFIX .. paramName) or 0
 			if freq > 1 then
@@ -148,16 +152,29 @@ local function init()
 		end
 
 		if #frequencies == 0 then
-			return init, 1000
+			return init, 100
 		end
 
-		lower_bound = 1000 + (i - 1) * range_step
-		upper_bound = lower_bound + range_step
 		range_step = RC_RANGE / #frequencies
+		gcs:send_text(6, "4: Done!")
 		is_init = true
+		return init, 100
+	end
+
+	if not is_init_boundaries then
+		gcs:send_text(6, "5: Create boundaries table ...")
+		for i, _ in ipairs(frequencies) do
+			lower_bound = 990 + (i - 1) * range_step
+			upper_bound = lower_bound + range_step
+
+			table.insert(boundaries, {lower = lower_bound, upper = upper_bound})
+			gcs:send_text(6, i .. ": " .. lower_bound .. ", " .. upper_bound)
+		end
+		gcs:send_text(6, "5: Done")
+		is_init_boundaries = true
+		gcs:send_text(6, "Initialize complete!")
 		return loop, LOOP_INTERVAL
 	end
 end
-return init, 2000
-
+return init, 100
 -- init END --
