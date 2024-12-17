@@ -16,7 +16,7 @@
 -- consts START --
 local TABLE_KEY = 51
 local TABLE_PREFIX = "VTX_"
-local LOOP_INTERVAL = 300
+local LOOP_INTERVAL = 200
 local VTX_FREQ = "VTX_FREQ"
 local RC_RANGE = 1010
 -- consts END --
@@ -35,7 +35,7 @@ local is_enable = false
 local is_init_RC_channel = false
 local is_init_boundaries = false
 local is_init = false
-
+local count = 0
 local frequencies = {}
 local boundaries = {}
 local PARAMS = {
@@ -80,9 +80,8 @@ end
 local function init()
 	-- add param table
 
-	local count = 0
 	if not is_add_param_table then
-		gcs:send_text(6, "Initialize VTX control")
+		gcs:send_text(6, "0: Initialize VTX control")
 
 		assert(param:add_table(TABLE_KEY, TABLE_PREFIX, 10), "The parameter table wasn`t created")
 		param:add_param(TABLE_KEY, 1, PARAMS.CHANGE_ENABLE, 0)
@@ -104,14 +103,17 @@ local function init()
 	-- check enable vtx channel change mode
 	if not is_enable then
 		local enable = param:get(TABLE_PREFIX .. PARAMS.CHANGE_ENABLE) or 0
-		gcs:send_text(6, "1: VTX control enable!")
+		if enable == 1 then
+			gcs:send_text(6, "1: VTX control enable!")
+			return init, 100
+		end
 
-		if enable == 0 and count < 10 then
+		if enable == 0 and count < 5 then
 			count = count + 1
 			return init, 100
-		elseif enable == 0 and count > 10 then
+		elseif enable == 0 and count >= 5 then
 			gcs:send_text(6, "1: VTX control disabled!")
-			return 0
+			return
 		end
 
 		is_enable = true
