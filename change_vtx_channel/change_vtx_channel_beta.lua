@@ -4,9 +4,9 @@
 -- auto detection of the number of channels;
 -- @Author: @alex_jackson.01 (signal);
 -- @For To use with MILELRS a couple of steps are required;
--- 				1) Enable option "VTX_CHANGE_ENABLE" to 1;
+-- 				1) Enable option "VTX_CHANGE_EN" to 1;
 -- 				2) Specify the Channel (aux) that will switch vtx,
--- 				in parameter "VTX_CHANGE_RC" from 5 to 16;
+-- 				in parameter "VTX_CHANGE_RC" from 6 to 16;
 -- 				3) Specify the frequencies of the desired vtx channels
 -- 				in the same order as specified in the MILELRS settings,
 -- 				in parameters "FREQ1" to "FREQ8";
