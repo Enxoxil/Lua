@@ -9,5 +9,6 @@
 		"lat",
 		"gps_alt"
 	],
-	"lua.targetVersion": "5.3"
+	"lua.targetVersion": "5.3",
+	"Lua.diagnostics.disable": ["trailing-space"]
 }

@@ -12,10 +12,42 @@
 -- 				in parameters "FREQ1" to "FREQ8";
 -- @end;
 --
+---@diagnostic disable: param-type-mismatch
+---@diagnostic disable: cast-local-type
+---@diagnostic disable: undefined-global
+
+-- create VTX table START
+local TABLE_KEY = 66
+local TABLE_PREFIX = "VTX_"
+local PARAMS = {
+	CHANGE_ENABLE = "CHANGE_EN",
+	CHANNEL_RC = "CHANNEL_RC",
+	FREQS = {
+		"FREQ1",
+		"FREQ2",
+		"FREQ3",
+		"FREQ4",
+		"FREQ5",
+		"FREQ6",
+		"FREQ7",
+		"FREQ8"
+	}
+}
+
+assert(param:add_table(TABLE_KEY, TABLE_PREFIX, 10), "Couldn`t add param table")
+assert(param:add_param(TABLE_KEY, 1, PARAMS.CHANGE_ENABLE, 0), "Couldn`t add vtx change enable param")
+assert(param:add_param(TABLE_KEY, 2, PARAMS.CHANNEL_RC, 0), "Couldn`t add vtx channel rc param")
+assert(param:add_param(TABLE_KEY, 3, PARAMS.FREQS[1], 0), "Couldn`t add vtx 1 frequency param")
+assert(param:add_param(TABLE_KEY, 4, PARAMS.FREQS[2], 0), "Couldn`t add vtx 2 frequency param")
+assert(param:add_param(TABLE_KEY, 5, PARAMS.FREQS[3], 0), "Couldn`t add vtx 3 frequency param")
+assert(param:add_param(TABLE_KEY, 6, PARAMS.FREQS[4], 0), "Couldn`t add vtx 4 frequency param")
+assert(param:add_param(TABLE_KEY, 7, PARAMS.FREQS[5], 0), "Couldn`t add vtx 5 frequency param")
+assert(param:add_param(TABLE_KEY, 8, PARAMS.FREQS[6], 0), "Couldn`t add vtx 6 frequency param")
+assert(param:add_param(TABLE_KEY, 9, PARAMS.FREQS[7], 0), "Couldn`t add vtx 7 frequency param")
+assert(param:add_param(TABLE_KEY, 10, PARAMS.FREQS[8], 0), "Couldn`t add vtx 8 frequency param")
+-- create VTX table END
 
 -- var START --
-local TABLE_KEY = 51
-local TABLE_PREFIX = "VTX_"
 local LOOP_INTERVAL = 200
 local VTX_FREQ = "VTX_FREQ"
 local RC_RANGE = 1010
@@ -35,20 +67,6 @@ local is_init = false
 local count = 0
 local frequencies = {}
 local boundaries = {}
-local PARAMS = {
-	CHANGE_ENABLE = "CHANGE_EN",
-	CHANNEL_RC = "CHANNEL_RC",
-	FREQS = {
-		"FREQ1",
-		"FREQ2",
-		"FREQ3",
-		"FREQ4",
-		"FREQ5",
-		"FREQ6",
-		"FREQ7",
-		"FREQ8"
-	}
-}
 -- var END --
 
 -- main START --
@@ -96,13 +114,20 @@ local function init()
 		param:add_param(TABLE_KEY, 10, PARAMS.FREQS[8], 0)
 
 		is_add_param_table = true
-
+		-- bind parameter to variables
+		--[[
+			// @Param: VTX_CHANGE_EN
+			// @DisplayName: Enable VTX channel change
+			// @Description: Enable VTX channel change
+			// @Values: 0:Disabled,1:Enabled
+			// @User: Standard
+		--]]
+		-- check enable vtx channel change mode
 		return init, 1000
 	end
 
-	-- check enable vtx channel change mode
 	if not is_enable then
-		local enable = param:get(TABLE_PREFIX .. PARAMS.CHANGE_ENABLE) or 0
+		enable = param:get(TABLE_PREFIX .. PARAMS.CHANGE_ENABLE) or 0
 		if enable == 1 then
 			gcs:send_text(6, "1 : VTX control enable!")
 			gcs:send_text(6, " ")
@@ -187,7 +212,7 @@ local function init()
 		is_init_boundaries = true
 		gcs:send_text(6, "Initialize complete!!!")
 		gcs:send_text(6, " - * - * - * - * - * - * - * - * - * - * - * - ")
-		gcs:send_text(6, " ")
+		gcs:send_text(6, "loop starting ...")
 		return loop, LOOP_INTERVAL
 	end
 end
