@@ -4,12 +4,15 @@
 -- auto detection of the number of channels and power lvl;
 -- @Author: @alex_jackson.01 (signal);
 -- @For To use with MILELRS a couple of steps are required;
--- 				1) Enable option "VTX_CHANGE_EN" to 1;
--- 				2) Specify the Channel (aux) that will switch vtx,
--- 				in parameter "VTX_CHANGE_RC" from 6 to 16;
+-- 				1) Enable option "VTX_CTRL_EN" to 1;
+-- 				2) Specify the Channel (aux) that will control vtx
+--  				 channel and power lvl,
+-- 				in parameter "VTX_CH_RC" and "VTX_PLVL_RC" from 6 to 16;
 -- 				3) Specify the frequencies of the desired vtx channels
 -- 				in the same order as specified in the MILELRS settings,
 -- 				in parameters "FREQ1" to "FREQ8";
+-- 				4) Specify the power levels of the vtx
+-- 				in parameters "PLVL1" to "PLVL6";
 -- @end;
 --
 
@@ -26,6 +29,8 @@ local RC_channel_value = 0
 local RC_plvl_value = 0
 local prev_freq = 0
 local prev_plvl = 0
+local prev_rc_ch_state = 0
+local prev_rc_plvl_state = 0
 local ch_range_step = 0
 local plvl_range_step = 0
 local is_init_vtx_freq = false
@@ -64,44 +69,42 @@ local PARAMS = {
 }
 -- var END --
 
--- main START --
-local function loop()
-	RC_channel_value = rc:get_pwm(RC_channel)
-	RC_plvl_value = rc:get_pwm(RC_plvl_channel)
-
-	for i, freq in ipairs(frequencies) do
-		local lower_b = chn_boundaries[i].lower
-		local upper_b = chn_boundaries[i].upper
-
-		if RC_channel_value > lower_b and RC_channel_value <= upper_b then
-			if freq ~= prev_freq then
-				gcs:send_text(6, "Current VTX freq: " .. freq)
-				prev_freq = freq
-				param:set(VTX_FREQ, freq)
-				break
-			end
-		end
-	end
-
-	for i, plvl in ipairs(plvls) do
-		local lower_b = plvl_boundaries[i].lower
-		local upper_b = plvl_boundaries[i].upper
-
-		if RC_plvl_value > lower_b and RC_plvl_value <= upper_b then
-			if plvl ~= prev_plvl then
-				gcs:send_text(6, "Current VTX power lvl: " .. plvl)
-				prev_plvl = plvl
-				param:set(VTX_POWER, plvl)
-				break
-			end
-		end
-	end
-
-	return loop, LOOP_INTERVAL
-end
--- main END --
-
 -- helpers START --
+local function binary_search(array, value)
+	local min = 1
+	local max = #array
+	while min <= max do
+		local mid = math.floor((min + max) / 2)
+		local b = array[mid]
+		if value > b.lower and value <= b.upper then
+			return mid
+		elseif value < b.lower then
+			max = mid - 1
+		else
+			min = mid + 1
+		end
+	end
+	return nil
+end
+
+local function update_vtx_freq()
+	local freq_index = binary_search(chn_boundaries, RC_channel_value)
+	if freq_index ~= prev_freq then
+		gcs:send_text(6, "Current VTX freq: " .. frequencies[freq_index])
+		prev_freq = freq_index
+		param:set_and_save(VTX_FREQ, frequencies[freq_index])
+	end
+end
+
+local function update_vtx_power()
+	local plvl_index = binary_search(plvl_boundaries, RC_plvl_value)
+	if plvl_index ~= prev_plvl then
+		gcs:send_text(6, "Current VTX power lvl: " .. plvls[plvl_index])
+		prev_plvl = plvl_index
+		param:set_and_save(VTX_POWER, plvls[plvl_index])
+	end
+end
+
 local function get_range_step(range, values)
 	return range / values
 end
@@ -118,7 +121,27 @@ local function set_boundaries(array, boundaries, step)
 		gcs:send_text(6, i .. " - " .. lower_bound .. ", " .. upper_bound .. " Hz;")
 	end
 end
+
 -- helpers END --
+
+-- main START --
+local function loop()
+	RC_channel_value = rc:get_pwm(RC_channel)
+	RC_plvl_value = rc:get_pwm(RC_plvl_channel)
+
+	if RC_channel_value ~= prev_rc_ch_state then
+		update_vtx_freq()
+		prev_rc_ch_state = RC_channel_value
+	end
+
+	if RC_plvl_value ~= prev_rc_plvl_state then
+		update_vtx_power()
+		prev_rc_plvl_state = RC_plvl_value
+	end
+
+	return loop, LOOP_INTERVAL
+end
+-- main END --
 
 -- init START --
 local function init()
